@@ -12,6 +12,12 @@ test "zero" {
     ));
 }
 
+pub fn unit(comptime N: comptime_int, T: type, i: usize) @Vector(N, T) {
+    var u = zero(N, T);
+    u[i] = 1;
+    return u;
+}
+
 pub fn eq(a: anytype, b: anytype) bool {
     return @reduce(.And, a == b);
 }
@@ -78,6 +84,12 @@ pub fn normalized(vec: anytype) @TypeOf(vec) {
 pub fn normalizedOrZero(vec: anytype, zero_threshold: typeInfo(@TypeOf(vec)).T) @TypeOf(vec) {
     if (approxZero(vec, zero_threshold))
         return zero(typeInfo(@TypeOf(vec)).N, typeInfo(@TypeOf(vec)).T);
+    return normalized(vec);
+}
+
+pub fn normalizedOrNull(vec: anytype, zero_threshold: typeInfo(@TypeOf(vec)).T) ?@TypeOf(vec) {
+    if (approxZero(vec, zero_threshold))
+        return null;
     return normalized(vec);
 }
 
@@ -178,24 +190,24 @@ pub fn randomLinearlyDependent(
     return vec;
 }
 
-pub fn randomUnit(N: comptime_int, T: type, rand: std.Random) @Vector(N, T) {
+pub fn randomNormal(N: comptime_int, T: type, rand: std.Random) @Vector(N, T) {
     std.debug.assert(@typeInfo(T) == .Float);
     const v: @Vector(N, T) = randomRange(N, T, rand, -1, 1);
     return normalized(v);
 }
 
-test "randomUnit" {
+test "randomNormal" {
     const N = 3;
     const T = f32;
 
-    const v = randomUnit(N, T, tests.RAND);
+    const v = randomNormal(N, T, tests.RAND);
 
     for (0..N) |i| {
         try std.testing.expect(-1 <= v[i] and v[i] <= 1);
     }
 }
 
-pub fn randomUnitScaled(
+pub fn randomNormalScaled(
     N: comptime_int,
     T: type,
     rand: std.Random,
@@ -205,18 +217,18 @@ pub fn randomUnitScaled(
     std.debug.assert(@typeInfo(T) == .Float);
     std.debug.assert(from < to);
     std.debug.assert(from >= 0);
-    const v: @Vector(N, T) = randomUnit(N, T, rand);
+    const v: @Vector(N, T) = randomNormal(N, T, rand);
     const c = floatRange(rand, T, from, to);
     return scaled(v, c);
 }
 
-test "randomUnitScaled" {
+test "randomNormalScaled" {
     const N = 3;
     const T = f32;
     const from: T = 0.1;
     const to: T = 10.0;
 
-    const v = randomUnit(N, T, tests.RAND);
+    const v = randomNormal(N, T, tests.RAND);
     const l = length(v);
     try std.testing.expect(from <= l);
     try std.testing.expect(l <= to);
