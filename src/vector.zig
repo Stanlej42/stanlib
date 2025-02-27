@@ -14,7 +14,10 @@ test "zero" {
 
 pub fn unit(comptime N: comptime_int, T: type, i: usize) @Vector(N, T) {
     var u = zero(N, T);
-    u[i] = 1;
+    u = std.simd.shiftElementsRight(u, 1, 1);
+    for (0..i) |_| {
+        u = std.simd.rotateElementsRight(u, 1);
+    }
     return u;
 }
 
