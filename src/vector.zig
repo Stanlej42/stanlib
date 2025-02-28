@@ -1,6 +1,5 @@
 const std = @import("std");
 const tests = @import("tests");
-const approx = @import("math").approx;
 
 pub fn zero(comptime N: comptime_int, comptime T: type) @Vector(N, T) {
     return @splat(0.0);
@@ -11,6 +10,15 @@ test "zero" {
         @Vector(2, f32){ 0.0, 0.0 },
         zero(2, f32),
     ));
+}
+
+pub fn unit(comptime N: comptime_int, T: type, i: usize) @Vector(N, T) {
+    var u = zero(N, T);
+    u = std.simd.shiftElementsRight(u, 1, 1);
+    for (0..i) |_| {
+        u = std.simd.rotateElementsRight(u, 1);
+    }
+    return u;
 }
 
 pub fn eq(a: anytype, b: anytype) bool {
@@ -40,7 +48,7 @@ test "dot" {
     ));
 }
 
-pub fn scaled(vec: anytype, c: @typeInfo(@TypeOf(vec)).Vector.child) @TypeOf(vec) {
+pub fn scaled(vec: anytype, c: typeInfo(@TypeOf(vec)).T) @TypeOf(vec) {
     return vec * @as(@TypeOf(vec), @splat(c));
 }
 
@@ -73,30 +81,25 @@ test "length" {
 }
 
 pub fn normalized(vec: anytype) @TypeOf(vec) {
-    std.debug.assert(!approxZeroAbs(vec));
     return divided(vec, length(vec));
+}
+
+pub fn normalizedOrZero(vec: anytype, zero_threshold: typeInfo(@TypeOf(vec)).T) @TypeOf(vec) {
+    if (approxZero(vec, zero_threshold))
+        return zero(typeInfo(@TypeOf(vec)).N, typeInfo(@TypeOf(vec)).T);
+    return normalized(vec);
+}
+
+pub fn normalizedOrNull(vec: anytype, zero_threshold: typeInfo(@TypeOf(vec)).T) ?@TypeOf(vec) {
+    if (approxZero(vec, zero_threshold))
+        return null;
+    return normalized(vec);
 }
 
 test "normalized" {
     try std.testing.expect(eq(
         normalized(@Vector(4, f32){ 10.0, 0.0, 0.0, 0.0 }),
         @Vector(4, f32){ 1.0, 0.0, 0.0, 0.0 },
-    ));
-}
-
-pub fn normalizedOrZero(vec: anytype) @TypeOf(vec) {
-    if (!approxZeroAbs(vec)) {
-        return normalized(vec);
-    }
-    const N = @typeInfo(@TypeOf(vec)).Vector.len;
-    const T = @typeInfo(@TypeOf(vec)).Vector.child;
-    return zero(N, T);
-}
-
-test "normalizedOrZero" {
-    try std.testing.expect(eq(
-        normalizedOrZero(@Vector(4, f32){ std.math.floatEps(f32), 0.0, 0.0, 0.0 }),
-        @Vector(4, f32){ 0.0, 0.0, 0.0, 0.0 },
     ));
 }
 
@@ -120,51 +123,22 @@ test "projected" {
     ));
 }
 
-pub fn anyNan(x: anytype) bool {
-    return @reduce(.Or, x != x);
+pub fn typeInfo(vecT: type) struct { N: comptime_int, T: type } {
+    const info = @typeInfo(vecT).Vector;
+    return .{ .N = info.len, .T = info.child };
 }
 
-pub fn approxZeroAbs(x: anytype) bool {
-    const N = @typeInfo(@TypeOf(x)).Vector.len;
-    const T = @typeInfo(@TypeOf(x)).Vector.child;
+pub fn approxZero(x: anytype, zero_threshold: typeInfo(@TypeOf(x)).T) bool {
+    const tolerance: @TypeOf(x) = @splat(zero_threshold);
 
-    return approxEqAbs(zero(N, T), x);
+    //isNan(x)
+    if (@reduce(.Or, x != x)) return false;
+
+    return @reduce(.And, @abs(x) <= tolerance);
 }
 
-pub fn approxZeroRel(x: anytype) bool {
-    const N = @typeInfo(@TypeOf(x)).Vector.len;
-    const T = @typeInfo(@TypeOf(x)).Vector.child;
-
-    return approxEqRel(zero(N, T), x);
-}
-
-test "approxZero" {
-    try std.testing.expect(approxZeroAbs(@Vector(2, f32){ 0.0, 0.0 }));
-    try std.testing.expect(approxZeroAbs(@Vector(2, f32){ std.math.floatEps(f32), 0.0 }));
-    try std.testing.expect(approxZeroAbs(@Vector(2, f32){ -std.math.floatEps(f32), -std.math.floatEps(f32) }));
-    try std.testing.expect(!approxZeroAbs(@Vector(2, f32){ -std.math.floatEps(f32), -2 * std.math.floatEps(f32) }));
-    try std.testing.expect(!approxZeroAbs(@Vector(2, f32){ -std.math.floatEps(f32), std.math.nan(f32) }));
-}
-
-pub fn approxEqAbs(expected: anytype, actual: @TypeOf(expected)) bool {
-    const T = @typeInfo(@TypeOf(expected)).Vector.child;
-    std.debug.assert(@typeInfo(T) == .Float or @typeInfo(T) == .ComptimeFloat);
-
-    if (anyNan(expected))
-        return false;
-
-    return @reduce(.And, @abs(expected - actual) <= @as(@TypeOf(expected), @splat(std.math.floatEps(T))));
-}
-
-pub fn approxEqRel(expected: anytype, actual: @TypeOf(expected)) bool {
-    const T = @typeInfo(@TypeOf(expected)).Vector.child;
-    std.debug.assert(@typeInfo(T) == .Float or @typeInfo(T) == .ComptimeFloat);
-
-    if (anyNan(expected))
-        return false;
-
-    const tolerance: @TypeOf(expected) = @splat(@sqrt(std.math.floatEps(T)));
-    return @reduce(.And, @abs(expected - actual) <= @max(@abs(expected), @abs(actual)) * tolerance);
+fn floatRange(rand: std.Random, T: type, from: T, to: T) T {
+    return from + (to - from) * rand.float(T);
 }
 
 pub fn random(N: comptime_int, T: type, rand: std.Random) @Vector(N, T) {
@@ -186,33 +160,57 @@ pub fn randomRange(
     std.debug.assert(@typeInfo(T) == .Float);
     var v: @Vector(N, T) = undefined;
     for (0..N) |i| {
-        v[i] = from + (to - from) * rand.float(T);
+        v[i] = floatRange(rand, T, from, to);
     }
     return v;
 }
 
-pub fn randomUnit(N: comptime_int, T: type, rand: std.Random) @Vector(N, T) {
-    std.debug.assert(@typeInfo(T) == .Float);
-    var v: @Vector(N, T) = undefined;
-    for (0..N) |i| {
-        v[i] = 2 * rand.float(T) - 1;
+pub fn fillRandomRange(
+    N: comptime_int,
+    T: type,
+    vectors: []@Vector(N, T),
+    rand: std.Random,
+    from: T,
+    to: T,
+) void {
+    for (0..vectors.len) |i| {
+        vectors[i] = randomRange(N, T, rand, from, to);
     }
+}
+
+pub fn randomLinearlyDependent(
+    N: comptime_int,
+    T: type,
+    dependent_on: []@Vector(N, T),
+    rand: std.Random,
+    from: T,
+    to: T,
+) @Vector(N, T) {
+    var vec = zero(N, T);
+    for (dependent_on) |d| {
+        vec += scaled(d, floatRange(rand, T, from, to));
+    }
+    return vec;
+}
+
+pub fn randomNormal(N: comptime_int, T: type, rand: std.Random) @Vector(N, T) {
+    std.debug.assert(@typeInfo(T) == .Float);
+    const v: @Vector(N, T) = randomRange(N, T, rand, -1, 1);
     return normalized(v);
 }
 
-test "randomUnit" {
+test "randomNormal" {
     const N = 3;
     const T = f32;
 
-    const v = randomUnit(N, T, tests.RAND);
+    const v = randomNormal(N, T, tests.RAND);
 
     for (0..N) |i| {
         try std.testing.expect(-1 <= v[i] and v[i] <= 1);
     }
-    try std.testing.expect(approx.approxEqAbs(T, 1.0, length(v)));
 }
 
-pub fn randomUnitScaled(
+pub fn randomNormalScaled(
     N: comptime_int,
     T: type,
     rand: std.Random,
@@ -222,21 +220,18 @@ pub fn randomUnitScaled(
     std.debug.assert(@typeInfo(T) == .Float);
     std.debug.assert(from < to);
     std.debug.assert(from >= 0);
-    var v: @Vector(N, T) = undefined;
-    for (0..N) |i| {
-        v[i] = 2 * rand.float(T) - 1;
-    }
-    const c = to + (from - to) * rand.float(T);
-    return scaled(normalized(v), c);
+    const v: @Vector(N, T) = randomNormal(N, T, rand);
+    const c = floatRange(rand, T, from, to);
+    return scaled(v, c);
 }
 
-test "randomUnitRange" {
+test "randomNormalScaled" {
     const N = 3;
     const T = f32;
     const from: T = 0.1;
     const to: T = 10.0;
 
-    const v = randomUnit(N, T, tests.RAND);
+    const v = randomNormal(N, T, tests.RAND);
     const l = length(v);
     try std.testing.expect(from <= l);
     try std.testing.expect(l <= to);
