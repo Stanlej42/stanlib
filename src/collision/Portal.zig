@@ -23,7 +23,7 @@ pub fn Portal(N: comptime_int, T: type) type {
         pub fn setPoint(self: *Self, i: usize, point: @Vector(N, T)) void {
             std.debug.assert(i < N);
             self.points[i] = point;
-            self.base_edges[i] = vector.normalizedOrZero(point - self.base_point);
+            self.base_edges[i] = point - self.base_point;
         }
 
         //face with face_id is the face opposite to points[face_id]
@@ -36,7 +36,7 @@ pub fn Portal(N: comptime_int, T: type) type {
             @memcpy(orthonormal[0..face_id], self.base_edges[0..face_id]);
             @memcpy(orthonormal[face_id .. N - 1], self.base_edges[face_id + 1 .. N]);
             orthonormal[N - 1] = self.base_edges[face_id];
-            ortho.gramSchmidt(N, T, &orthonormal);
+            ortho.gram_schmidt.orthonormalize(N, T, &orthonormal);
             return orthonormal[N - 1];
         }
 
@@ -47,7 +47,7 @@ pub fn Portal(N: comptime_int, T: type) type {
                 orthonormal[i - 1] = self.points[i] - self.points[i - 1];
             }
             orthonormal[N - 1] = -self.base_edges[0];
-            ortho.gramSchmidt(N, T, &orthonormal);
+            ortho.gram_schmidt.orthonormalize(N, T, &orthonormal);
             return orthonormal[N - 1];
         }
 
@@ -58,14 +58,16 @@ pub fn Portal(N: comptime_int, T: type) type {
             const new_edge = new_point - self.base_point;
             var i: usize = 0;
             var j: usize = N - 1;
-            var orthonormal: [N - 1]@Vector(N, T) = undefined;
-            orthonormal[0] = vector.normalizedOrZero(new_edge);
+            var orthonormal: [N]@Vector(N, T) = undefined;
+            orthonormal[0] = new_edge;
             for (0..N - 1) |_| {
                 @memcpy(orthonormal[1 .. 1 + i], self.base_edges[0 .. 0 + i]);
                 @memcpy(orthonormal[1 + i .. j], self.base_edges[i + 1 .. j]);
                 @memcpy(orthonormal[j .. N - 1], self.base_edges[j + 1 .. N]);
-                ortho.gramSchmidt(N, T, &orthonormal);
-                const choice_normal = ortho.gramSchmidtOne(N, T, &orthonormal, self.base_edges[i]);
+                orthonormal[N - 1] = self.base_edges[i];
+                ortho.gram_schmidt.orthonormalize(N, T, &orthonormal);
+                const choice_normal = orthonormal[N - 1];
+                // const choice_normal = ortho.gram_schmidt.orthogonalizeOne(N, T, self.base_edges[i], &orthonormal);
                 if (vector.dot(choice_normal, -new_point) >= 0) {
                     i += 1;
                 } else {
@@ -92,10 +94,10 @@ pub fn Portal(N: comptime_int, T: type) type {
         }
 
         pub fn isDegenerate(self: Self) bool {
-            var orhonormal: [N]@Vector(N, T) = self.base_edges;
-            ortho.gramSchmidt(N, T, &orhonormal);
-            std.debug.print("{d}\n", .{orhonormal[N - 1]});
-            return vector.approxZeroAbs(orhonormal[N - 1]);
+            var orthonormal: [N]@Vector(N, T) = self.base_edges;
+            ortho.gram_schmidt.orthonormalize(N, T, orthonormal[0 .. N - 1]);
+            // std.debug.print("{d}\n", .{orhonormal[N - 1]});
+            return ortho.gram_schmidt.orthonormalizeOne(N, T, orthonormal[N - 1], orthonormal[0 .. N - 1]) == null;
         }
     };
 }
