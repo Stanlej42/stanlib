@@ -8,46 +8,7 @@ fn MGS(
     vec: @Vector(N, T),
     orthonormal: []@Vector(N, T),
 ) @Vector(N, T) {
-    var new = vec;
-    for (orthonormal) |o| {
-        const c = vector.dot(o, new);
-        new -= vector.scaled(o, c);
-    }
-    return new;
-}
-
-fn MGS_2(
-    N: comptime_int,
-    T: type,
-    vec: @Vector(N, T),
-    orthonormal: []@Vector(N, T),
-) @Vector(N, T) {
-    var new = vec;
-    for (orthonormal) |o| {
-        for (0..2) |_| {
-            const c = vector.dot(o, new);
-            new -= vector.scaled(o, c);
-        }
-    }
-    return new;
-}
-
-fn MGS22(
-    N: comptime_int,
-    T: type,
-    vec: @Vector(N, T),
-    orthonormal: []@Vector(N, T),
-) @Vector(N, T) {
-    var new = vec;
-    for (0..2) |_| {
-        for (orthonormal) |o| {
-            for (0..2) |_| {
-                const c = vector.dot(o, new);
-                new -= vector.scaled(o, c);
-            }
-        }
-    }
-    return new;
+    return MGSoi(N, T, vec, orthonormal, 1, 1);
 }
 
 fn MGS2_(
@@ -56,14 +17,37 @@ fn MGS2_(
     vec: @Vector(N, T),
     orthonormal: []@Vector(N, T),
 ) @Vector(N, T) {
+    return MGSoi(N, T, vec, orthonormal, 2, 1);
+}
+
+fn MGSoi(
+    N: comptime_int,
+    T: type,
+    vec: @Vector(N, T),
+    orthonormal: []@Vector(N, T),
+    outer: comptime_int,
+    inner: comptime_int,
+) @Vector(N, T) {
     var new = vec;
-    for (0..2) |_| {
+    for (0..outer) |_| {
         for (orthonormal) |o| {
-            const c = vector.dot(o, new);
-            new -= vector.scaled(o, c);
+            for (0..inner) |_| {
+                const c = vector.dot(o, new);
+                new -= vector.scaled(o, c);
+            }
         }
     }
     return new;
+}
+
+fn threshold(
+    N: comptime_int,
+    T: type,
+) T {
+    const flN: T = @floatFromInt(N);
+    // _ = flN;
+    return @sqrt(2 * flN) * std.math.floatEps(T);
+    // return std.math.floatEps(T);
 }
 
 pub fn orthogonalizeOne(
@@ -75,27 +59,16 @@ pub fn orthogonalizeOne(
     return MGS2_(N, T, vec, orthonormal);
 }
 
-fn orthonormalizeThreshold(
+pub fn orthonormalizeOne(
     N: comptime_int,
     T: type,
-    vecs: []@Vector(N, T),
-    zero_threshold: T,
-) void {
-    vecs[0] = vector.normalizedOrZero(vecs[0], zero_threshold);
-    for (0..vecs.len) |i| {
-        vecs[i] = vector.normalizedOrZero(
-            orthogonalizeOne(N, T, vecs[i], vecs[0..i]),
-            zero_threshold,
-        );
-    }
-}
-
-fn threshold(
-    N: comptime_int,
-    T: type,
-) T {
-    const flN: T = @floatFromInt(N);
-    return @sqrt(2 * flN) * std.math.floatEps(T);
+    vec: @Vector(N, T),
+    orthonormal: []@Vector(N, T),
+) ?@Vector(N, T) {
+    return vector.normalizedOrNull(
+        orthogonalizeOne(N, T, vec, orthonormal),
+        threshold(N, T),
+    );
 }
 
 pub fn orthonormalize(
@@ -103,15 +76,20 @@ pub fn orthonormalize(
     T: type,
     vecs: []@Vector(N, T),
 ) void {
-    orthonormalizeThreshold(N, T, vecs, threshold(N, T));
+    for (0..2) |_| {
+        for (0..vecs.len) |i| {
+            vecs[i] = orthonormalizeOne(N, T, vecs[i], vecs[0..i]) orelse
+                vector.zero(N, T);
+        }
+    }
 }
 
 test "orthogonality" {
-    if (true) return error.SkipZigTest;
-    const N = 4;
+    // if (true) return error.SkipZigTest;
+    const N = 10;
     const T = f32;
     var max_dot: T = 0;
-    for (0..1000000) |_| {
+    for (0..100000) |_| {
         var vecs: [N]@Vector(N, T) = undefined;
         vector.fillRandomRange(N, T, &vecs, tests.RAND, -1, 1);
         orthonormalize(N, T, &vecs);
@@ -128,7 +106,7 @@ test "orthogonality" {
 }
 
 test "linearly dependent" {
-    if (true) return error.SkipZigTest;
+    // if (true) return error.SkipZigTest;
     const N = 10;
     const T = f32;
     var max_error: T = 0;
