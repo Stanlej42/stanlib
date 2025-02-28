@@ -1,9 +1,8 @@
 const std = @import("std");
 const tests = @import("tests");
-const math = @import("math");
+const math = @import("stanlib").math;
 const vector = math.vector;
-const ortho = math.ortho;
-const approx = math.approx;
+const ortho = @import("stanlib").ortho;
 
 pub fn Portal(N: comptime_int, T: type) type {
     return struct {

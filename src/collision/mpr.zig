@@ -1,8 +1,8 @@
 const std = @import("std");
 const tests = @import("tests");
-const math = @import("math");
+const math = @import("stanlib").math;
 const vector = math.vector;
-const ortho = math.ortho;
+const ortho = @import("stanlib").ortho;
 const Portal = @import("Portal.zig").Portal;
 
 pub fn minkDiff(N: comptime_int, T: type, A: anytype, B: anytype, dir: @Vector(N, T)) @Vector(N, T) {

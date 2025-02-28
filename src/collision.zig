@@ -1,8 +1,8 @@
 const std = @import("std");
 const tests = @import("tests");
-const math = @import("math");
+const math = @import("stanlib").math;
 const vector = math.vector;
-const ortho = math.ortho;
+const ortho = @import("stanlib").ortho;
 pub const aabb = @import("collision/AABB.zig");
 pub const ball = @import("collision/Ball.zig");
 pub const portal = @import("collision/Portal.zig");

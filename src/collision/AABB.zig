@@ -1,5 +1,5 @@
 const std = @import("std");
-const vector = @import("math").vector;
+const vector = @import("stanlib").math.vector;
 
 pub fn AABB(comptime N: comptime_int, comptime T: type) type {
     return struct {

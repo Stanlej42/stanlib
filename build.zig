@@ -11,33 +11,38 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
 
     const lib = b.addStaticLibrary(.{
-        .name = "math",
-        .root_source_file = b.path("src/math.zig"),
+        .name = "stanlib",
+        .root_source_file = b.path("src/stanlib.zig"),
         .target = target,
         .optimize = std.builtin.OptimizeMode.ReleaseFast,
     });
-    lib.root_module.addImport("math", &lib.root_module);
+    lib.root_module.addImport("stanlib", &lib.root_module);
 
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).
     b.installArtifact(lib);
 
-    const tests_mod = b.createModule(.{
+    // const tests_mod = b.createModule(.{
+    //     .root_source_file = b.path("src/tests.zig"),
+    //     .target = target,
+    //     .optimize = std.builtin.OptimizeMode.Debug,
+    // });
+
+    // Creates a step for unit testing. This only builds the test executable
+    // but does not run it.
+    const tests_module = b.createModule(.{
         .root_source_file = b.path("src/tests.zig"),
         .target = target,
         .optimize = std.builtin.OptimizeMode.Debug,
     });
-
-    // Creates a step for unit testing. This only builds the test executable
-    // but does not run it.
     const unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/math.zig"),
+        .root_source_file = b.path("src/stanlib.zig"),
         .target = target,
         .optimize = std.builtin.OptimizeMode.Debug,
     });
-    unit_tests.root_module.addImport("math", &unit_tests.root_module);
-    unit_tests.root_module.addImport("tests", tests_mod);
+    unit_tests.root_module.addImport("stanlib", &unit_tests.root_module);
+    unit_tests.root_module.addImport("tests", tests_module);
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
     run_unit_tests.has_side_effects = true; //prevents caching

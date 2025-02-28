@@ -1,5 +1,5 @@
 const std = @import("std");
-const vector = @import("math").vector;
+const vector = @import("vector.zig");
 const tests = @import("tests");
 
 pub fn identity(N: comptime_int, T: type) [N]@Vector(N, T) {

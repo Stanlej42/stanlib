@@ -1,5 +1,5 @@
 const std = @import("std");
-const vector = @import("math").vector;
+const vector = @import("stanlib").math.vector;
 
 pub fn Ball(comptime N: comptime_int, comptime T: type) type {
     return struct {

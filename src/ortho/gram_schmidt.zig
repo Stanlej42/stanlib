@@ -1,5 +1,5 @@
 const std = @import("std");
-const vector = @import("math").vector;
+const vector = @import("stanlib").math.vector;
 const tests = @import("tests");
 
 fn MGS(
