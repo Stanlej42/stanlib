@@ -45,9 +45,9 @@ fn threshold(
     T: type,
 ) T {
     const flN: T = @floatFromInt(N);
-    // _ = flN;
-    return @sqrt(2 * flN) * std.math.floatEps(T);
-    // return std.math.floatEps(T);
+    _ = flN;
+    // return @sqrt(flN) * std.math.floatEps(T);
+    return 2 * std.math.floatEps(T);
 }
 
 pub fn orthogonalizeOne(
@@ -56,7 +56,8 @@ pub fn orthogonalizeOne(
     vec: @Vector(N, T),
     orthonormal: []@Vector(N, T),
 ) @Vector(N, T) {
-    return MGS2_(N, T, vec, orthonormal);
+    const new = vector.normalizedOrZero(vec, threshold(N, T));
+    return MGS2_(N, T, new, orthonormal);
 }
 
 pub fn orthonormalizeOne(
