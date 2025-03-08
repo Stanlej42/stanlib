@@ -81,7 +81,7 @@ pub fn Portal(N: comptime_int, T: type) type {
             for (1..N) |i| {
                 orthonormal[i - 1] = self.points[i] - self.points[i - 1];
             }
-            orthonormal[N - 1] = -self.center();
+            orthonormal[N - 1] = -self.points[0];
             ortho.gram_schmidt.orthonormalize(N, T, &orthonormal);
             return orthonormal[N - 1];
         }
