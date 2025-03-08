@@ -86,9 +86,7 @@ pub fn intersectingNotContaining(
     rand: std.Random,
 ) Portal(N, T) {
     var p = containingOrigin(N, T, rand);
-    var newO = portalPoint(N, T, rand, p) - p.base_point;
-    newO = vector.scaled(newO, 1 + math.randFloatRange(T, 2 * std.math.floatEps(T), 1, rand));
-    p.translate(-newO);
+    p.translate(-refinePoint(N, T, p, rand));
     return p;
 }
 
