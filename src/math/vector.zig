@@ -1,4 +1,5 @@
 const std = @import("std");
+const math = @import("stanlib").math;
 const tests = @import("tests");
 
 pub fn zero(comptime N: comptime_int, comptime T: type) @Vector(N, T) {
@@ -137,10 +138,6 @@ pub fn approxZero(x: anytype, zero_threshold: typeInfo(@TypeOf(x)).T) bool {
     return @reduce(.And, @abs(x) <= tolerance);
 }
 
-fn floatRange(rand: std.Random, T: type, from: T, to: T) T {
-    return from + (to - from) * rand.float(T);
-}
-
 pub fn random(N: comptime_int, T: type, rand: std.Random) @Vector(N, T) {
     std.debug.assert(@typeInfo(T) == .Float);
     var v: @Vector(N, T) = undefined;
@@ -160,7 +157,7 @@ pub fn randomRange(
     std.debug.assert(@typeInfo(T) == .Float);
     var v: @Vector(N, T) = undefined;
     for (0..N) |i| {
-        v[i] = floatRange(rand, T, from, to);
+        v[i] = math.randFloatRange(T, from, to, rand);
     }
     return v;
 }
@@ -188,7 +185,7 @@ pub fn randomLinearlyDependent(
 ) @Vector(N, T) {
     var vec = zero(N, T);
     for (dependent_on) |d| {
-        vec += scaled(d, floatRange(rand, T, from, to));
+        vec += scaled(d, math.randFloatRange(T, from, to, rand));
     }
     return vec;
 }
@@ -221,7 +218,7 @@ pub fn randomNormalScaled(
     std.debug.assert(from < to);
     std.debug.assert(from >= 0);
     const v: @Vector(N, T) = randomNormal(N, T, rand);
-    const c = floatRange(rand, T, from, to);
+    const c = math.randFloatRange(T, from, to, rand);
     return scaled(v, c);
 }
 
