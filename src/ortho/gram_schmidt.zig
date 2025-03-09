@@ -85,7 +85,7 @@ pub fn orthonormalize(
 }
 
 test "orthogonality" {
-    if (true) return error.SkipZigTest;
+    // if (true) return error.SkipZigTest;
     const N = 10;
     const T = f32;
     var max_dot: T = 0;
@@ -106,7 +106,7 @@ test "orthogonality" {
 }
 
 test "linearly dependent" {
-    if (true) return error.SkipZigTest;
+    // if (true) return error.SkipZigTest;
     const N = 10;
     const T = f32;
     var max_error: T = 0;

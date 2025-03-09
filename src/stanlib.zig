@@ -7,5 +7,5 @@ const tests = @import("tests");
 
 test {
     tests.init();
-    _ = collision.portal;
+    std.testing.refAllDeclsRecursive(@This());
 }
