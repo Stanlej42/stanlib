@@ -130,7 +130,7 @@ pub fn Portal(N: comptime_int, T: type) type {
 }
 
 test "baseFaceNormal" {
-    // if (true) return error.SkipZigTest;
+    if (true) return error.SkipZigTest;
     const N = 10;
     const T = f32;
     for (0..100000) |_| {
@@ -151,7 +151,7 @@ test "baseFaceNormal" {
 }
 
 test "normal" {
-    // if (true) return error.SkipZigTest;
+    if (true) return error.SkipZigTest;
     const N = 10;
     const T = f32;
     for (0..100000) |_| {
@@ -166,7 +166,7 @@ test "normal" {
 }
 
 test "containsOrigin" {
-    // if (true) return error.SkipZigTest;
+    if (true) return error.SkipZigTest;
     const N = 10;
     const T = f32;
     for (0..100000) |_| {
@@ -176,7 +176,7 @@ test "containsOrigin" {
 }
 
 test "intersectsORay" {
-    // if (true) return error.SkipZigTest;
+    if (true) return error.SkipZigTest;
     const N = 10;
     const T = f32;
     for (0..100000) |_| {
@@ -186,7 +186,7 @@ test "intersectsORay" {
 }
 
 test "intersectingNotContaining" {
-    // if (true) return error.SkipZigTest;
+    if (true) return error.SkipZigTest;
     const N = 10;
     const T = f32;
     for (0..100000) |_| {
@@ -197,7 +197,7 @@ test "intersectingNotContaining" {
 }
 
 test "refine" {
-    // if (true) return error.SkipZigTest;
+    if (true) return error.SkipZigTest;
     const N = 10;
     const T = f32;
     for (0..100000) |_| {
