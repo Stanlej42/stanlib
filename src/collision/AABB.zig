@@ -117,3 +117,18 @@ pub fn randomAABBs(N: comptime_int, T: type, rand: std.Random) [2]AABB(N, T) {
         return randomDisjoint(N, T, rand);
     }
 }
+
+test "randomAABBs distribution" {
+    const N = 10;
+    const T = f32;
+    const totalN = 100000;
+    var intersectingN: usize = 0;
+    for (0..totalN) |_| {
+        const aabbs = randomAABBs(N, T, tests.RAND);
+        if (aabbs[0].intersects(aabbs[1]))
+            intersectingN += 1;
+    }
+    var percent: f64 = @floatFromInt(intersectingN * 100);
+    percent /= @floatFromInt(totalN);
+    try std.testing.expectEqual(50, @round(percent));
+}
